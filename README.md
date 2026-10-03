@@ -1,4 +1,4 @@
-# AllDownloader — Universal Video & Article Downloader / 全能下载器
+# AllDownloader — 全能下载器
 
 **One app for everything: WeChat articles & videos, Douyin, Bilibili, Xiaohongshu, Kuaishou, Haokan — Windows / macOS / Linux.**
 
@@ -11,13 +11,12 @@
 ### 📄 WeChat Article Export / 微信文章导出
 | Format / 格式 | | |
 |---|---|---|
-| PDF | JPG（长图 long-image） | HTML |
+| PDF | JPG | HTML |
 | Word (DOCX) | TXT | EPUB |
 | Markdown | Excel (XLSX) | |
 
 - Images embedded, original layout preserved / 图片自动嵌入，保留原排版
 - One-click long-image (JPG) export / 一键导出手机阅读长图
-- Batch download multiple articles / 支持批量下载多篇文章
 
 ### 🎬 Video Download / 视频下载
 - WeChat Channels / 微信视频号
@@ -28,10 +27,9 @@
 - Haokan / 好看视频
 
 ### ⚙️ More / 更多
-- Built-in browser for login-protected platforms / 内置浏览器，扫码登录即可下载受限内容
+- Built-in browser for login-protected platforms / 内置浏览器，方便解析
 - Bilingual UI (English / 中文), switch anytime / 中英双语界面，随时切换
 - No watermark / 无水印
-- 30-day free trial / 30 天免费试用
 
 ---
 
@@ -47,31 +45,7 @@ Grab the latest build from **[Releases](https://github.com/smalltoolkit/alldownl
 | macOS | `AllDownloader-macOS.zip` | Unsigned: right-click → Open / 未签名：右键 → 打开 |
 | Linux | `AllDownloader-Linux.tar.gz` | Needs `libwebkit2gtk-4.1` / 需要安装该系统库 |
 
-> **China users**: faster downloads available at **https://wechatdl.com/download**
-> **国内用户**：可从 **https://wechatdl.com/download** 下载，速度更快。
-
----
-
-## 🔑 Activation / 激活
-
-After the 30-day free trial, activate with a license key:
-
-30 天试用期满后，使用激活码解锁：
-
-**https://wechatdl.com/activate**
-
----
-
-## ❓ FAQ / 常见问题
-
-**Q: Is it really free? / 真的免费吗？**
-A: 30-day full-featured free trial, then a one-time license. / 30 天全功能免费试用，之后需购买激活码。
-
-**Q: Why no source code? / 为什么不开源？**
-A: This repo provides ready-to-run installers only. The core engines are compiled to native code to protect platform parsing algorithms. / 本仓库仅提供安装包；核心解析引擎已编译为机器码以保护算法。
-
-**Q: macOS says "cannot verify developer"? / macOS 提示无法验证开发者？**
-A: Right-click the app → Open → Open again. / 右键应用 → 打开 → 再次打开。
+> **faster downloads更快下载**： **https://wechatdl.com/download** 。
 
 ---
 
@@ -85,4 +59,4 @@ Downloaded content belongs to its original authors. Please use for personal stud
 
 ## 📬 Contact / 联系
 
-**https://wechatdl.com** · fatemcp@hotmail.com
+**app@wechatdl.com** 

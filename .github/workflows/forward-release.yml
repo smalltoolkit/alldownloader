@@ -3,6 +3,7 @@ name: Forward Release from alldownloader-build
 # 手动触发：公开库 Actions 页 → Run workflow → 输入版本号（如 v0.1.0）
 # 作用：把私有构建库 alldownloader-build 的 Release 资产（三平台安装包）
 #       转发到本公开库的 Release 页。私有库源码永远不进入本仓库。
+# 实现：curl + GitHub REST API 直传资产（repo scope 即可，不依赖 gh auth 的 read:org）
 on:
   workflow_dispatch:
     inputs:
@@ -24,45 +25,59 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # 创建 Release 必需
+    env:
+      GH_TOKEN: ${{ secrets.PRIVATE_PAT }}
+      TAG: ${{ github.event.inputs.tag }}
     steps:
-      - name: Authenticate (private build repo)
-        env:
-          PAT: ${{ secrets.PRIVATE_PAT }}
-        run: |
-          echo "$PAT" | gh auth login --with-token
-          gh auth status
-
       - name: Download release assets from private build repo
-        env:
-          PAT: ${{ secrets.PRIVATE_PAT }}
         run: |
+          set -euo pipefail
           mkdir -p assets
-          gh release download "${{ github.event.inputs.tag }}" \
-            --repo smalltoolkit/alldownloader-build \
-            --dir assets \
-            || { echo "Tag ${{ github.event.inputs.tag }} not found in build repo"; exit 1; }
-          echo "--- downloaded assets ---"
+          curl -sS -H "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/smalltoolkit/alldownloader-build/releases/tags/${TAG}" \
+            > /tmp/rel.json
+          jq -r '.tag_name // error("tag not found: " + (.message // "?"))' /tmp/rel.json
+          echo "assets: $(jq '.assets | length' /tmp/rel.json)"
+          jq -r '.assets[].browser_download_url' /tmp/rel.json | while read -r url; do
+            echo "downloading: $(basename "$url")"
+            curl -sSL -H "Authorization: token ${GH_TOKEN}" -o "assets/$(basename "$url")" "$url"
+          done
+          echo "--- downloaded ---"
           ls -la assets/
-          # 资产完整性校验：非空
           for f in assets/*; do
-            if [ ! -s "$f" ]; then echo "EMPTY ASSET: $f"; exit 1; fi
+            [ -s "$f" ] || { echo "EMPTY ASSET: $f"; exit 1; }
           done
 
       - name: Create or update release in this repo
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          # 幂等：tag 已存在则只补传资产，否则新建 release
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists — uploading assets only"
-            gh release upload "$TAG" assets/* --clobber
+          set -euo pipefail
+          curl -sS -H "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/smalltoolkit/alldownloader/releases/tags/${TAG}" \
+            > /tmp/pub.json
+          if jq -e '.id' /tmp/pub.json > /dev/null 2>&1; then
+            echo "Release ${TAG} exists - uploading assets only"
+            RELEASE_ID=$(jq -r '.id' /tmp/pub.json)
           else
-            echo "Creating release $TAG"
-            NOTES="Auto-forwarded from alldownloader-build. Download the file for your platform and unzip to run."
-            if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
-              gh release create "$TAG" assets/* --title "$TAG" --notes "$NOTES" --prerelease
-            else
-              gh release create "$TAG" assets/* --title "$TAG" --notes "$NOTES"
-            fi
+            echo "Creating release ${TAG}"
+            if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then PRE=true; else PRE=false; fi
+            jq -n --arg tag "$TAG" --arg name "$TAG" --argjson pre "$PRE" \
+              '{tag_name:$tag, name:$name, body:"Auto-forwarded from alldownloader-build. Download the file for your platform and unzip to run.", draft:false, prerelease:$pre}' \
+              > /tmp/newrel.json
+            curl -sS -X POST -H "Authorization: token ${GH_TOKEN}" -H "Content-Type: application/json" \
+              -d @/tmp/newrel.json \
+              "https://api.github.com/repos/smalltoolkit/alldownloader/releases" > /tmp/created.json
+            RELEASE_ID=$(jq -r '.id // error("create failed: " + (.message // "?"))' /tmp/created.json)
           fi
-          echo "--- final release assets ---"
-          gh release view "$TAG" --json assets -q '.assets[].name'
+          for f in assets/*; do
+            NAME=$(basename "$f")
+            echo "uploading: ${NAME}"
+            curl -sS -X POST -H "Authorization: token ${GH_TOKEN}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${f}" \
+              "https://uploads.github.com/repos/smalltoolkit/alldownloader/releases/${RELEASE_ID}/assets?name=${NAME}" \
+              | jq -r '"  uploaded: " + (.name // .message) + " " + ((.size // 0) | tostring)'
+          done
+          echo "--- final assets ---"
+          curl -sS -H "Authorization: token ${GH_TOKEN}" \
+            "https://api.github.com/repos/smalltoolkit/alldownloader/releases/tags/${TAG}" \
+            | jq -r '.assets[] | "  " + .name + " " + (.size|tostring)'

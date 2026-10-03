@@ -1,0 +1,68 @@
+name: Forward Release from alldownloader-build
+
+# 手动触发：公开库 Actions 页 → Run workflow → 输入版本号（如 v0.1.0）
+# 作用：把私有构建库 alldownloader-build 的 Release 资产（三平台安装包）
+#       转发到本公开库的 Release 页。私有库源码永远不进入本仓库。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to forward (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+      prerelease:
+        description: 'Mark as prerelease'
+        type: boolean
+        default: false
+
+# 安全红线：本 workflow 仅 workflow_dispatch 手动触发，
+# 禁用 pull_request* / issue 等一切事件（防止 fork 恶意 PR 窃取 secret）。
+# 无 checkout 步骤 —— 本仓库不应含任何源码/构建脚本。
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 创建 Release 必需
+    steps:
+      - name: Authenticate (private build repo)
+        env:
+          PAT: ${{ secrets.PRIVATE_PAT }}
+        run: |
+          echo "$PAT" | gh auth login --with-token
+          gh auth status
+
+      - name: Download release assets from private build repo
+        env:
+          PAT: ${{ secrets.PRIVATE_PAT }}
+        run: |
+          mkdir -p assets
+          gh release download "${{ github.event.inputs.tag }}" \
+            --repo smalltoolkit/alldownloader-build \
+            --dir assets \
+            || { echo "Tag ${{ github.event.inputs.tag }} not found in build repo"; exit 1; }
+          echo "--- downloaded assets ---"
+          ls -la assets/
+          # 资产完整性校验：非空
+          for f in assets/*; do
+            if [ ! -s "$f" ]; then echo "EMPTY ASSET: $f"; exit 1; fi
+          done
+
+      - name: Create or update release in this repo
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          # 幂等：tag 已存在则只补传资产，否则新建 release
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists — uploading assets only"
+            gh release upload "$TAG" assets/* --clobber
+          else
+            echo "Creating release $TAG"
+            NOTES="Auto-forwarded from alldownloader-build. Download the file for your platform and unzip to run."
+            if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+              gh release create "$TAG" assets/* --title "$TAG" --notes "$NOTES" --prerelease
+            else
+              gh release create "$TAG" assets/* --title "$TAG" --notes "$NOTES"
+            fi
+          fi
+          echo "--- final release assets ---"
+          gh release view "$TAG" --json assets -q '.assets[].name'

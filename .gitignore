@@ -1,0 +1,11 @@
+# 公开分发站：本仓库只放 README 与 workflow，不含任何源码/构建脚本
+# 忽略一切可能误入的本地产物
+*.zip
+*.tar.gz
+*.exe
+*.pyd
+*.so
+__pycache__/
+*.pyc
+.venv/
+venv/

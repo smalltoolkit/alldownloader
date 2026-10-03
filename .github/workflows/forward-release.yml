@@ -38,14 +38,28 @@ jobs:
             > /tmp/rel.json
           jq -r '.tag_name // error("tag not found: " + (.message // "?"))' /tmp/rel.json
           echo "assets: $(jq '.assets | length' /tmp/rel.json)"
-          jq -r '.assets[].browser_download_url' /tmp/rel.json | while read -r url; do
-            echo "downloading: $(basename "$url")"
-            curl -sSL -H "Authorization: token ${GH_TOKEN}" -o "assets/$(basename "$url")" "$url"
+          # 注意：必须用 API asset 端点（releases/assets/{id}）下载，
+          # browser_download_url (releases/download/...) 对本仓库返回 404。
+          jq -r '.assets[] | "\(.id)\t\(.name)"' /tmp/rel.json | while IFS=$'\t' read -r id name; do
+            echo "downloading: ${name} (asset ${id})"
+            curl -sSL -H "Authorization: token ${GH_TOKEN}" \
+              -H "Accept: application/octet-stream" \
+              -o "assets/${name}" \
+              "https://api.github.com/repos/smalltoolkit/alldownloader-build/releases/assets/${id}"
           done
           echo "--- downloaded ---"
           ls -la assets/
           for f in assets/*; do
             [ -s "$f" ] || { echo "EMPTY ASSET: $f"; exit 1; }
+          done
+          # 完整性校验：与 API 声明的 size 对比
+          jq -r '.assets[] | "\(.size)\t\(.name)"' /tmp/rel.json | while IFS=$'\t' read -r size name; do
+            actual=$(stat -c%s "assets/${name}")
+            if [ "$actual" != "$size" ]; then
+              echo "SIZE MISMATCH ${name}: expected ${size}, got ${actual}"
+              exit 1
+            fi
+            echo "  OK ${name}: ${actual} bytes"
           done
 
       - name: Create or update release in this repo

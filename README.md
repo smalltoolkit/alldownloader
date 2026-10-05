@@ -50,28 +50,22 @@ The app is **not code-signed** — a security warning on first launch is normal,
 ### macOS
 
 **First install / 首次安装：**
-
+** double-click the DMG, drag AllDownloader to Applications. 
+**首次安装：** 双击 DMG，把 AllDownloader 拖进「Applications」。
 ```bash
-hdiutil attach -noverify ~/Downloads/AllDownloader-macOS.dmg   # 1. Mount / 挂载
-cp -R "/Volumes/AllDownloader 4/AllDownloader.app" /Applications/   # 2. Copy to Applications / 复制到应用程序
-xattr -cr /Applications/AllDownloader.app && open /Applications/AllDownloader.app   # 3. Allow & open / 放行并打开
+xattr -cr /Applications/AllDownloader.app  # Allow / 放行（必须）
+open /Applications/AllDownloader.app #open app / 打开程序（或直接在应用程序双击程序图标）
 ```
-
-> 挂载点带数字后缀（如 `AllDownloader 4`）时，请使用带后缀的路径。
 
 **Update / 更新：** delete the old app first, then install. License, settings and downloads are kept — nothing is lost.
 **更新：** 先删除旧版再安装。授权、设置、已下载文件都保留，不会丢失。
 
 ```bash
-killall AllDownloader 2>/dev/null
-rm -rf /Applications/AllDownloader.app
-hdiutil attach -noverify ~/Downloads/AllDownloader-macOS.dmg
-cp -R "/Volumes/AllDownloader 4/AllDownloader.app" /Applications/
-xattr -cr /Applications/AllDownloader.app
-open /Applications/AllDownloader.app
+rm -rf /Applications/AllDownloader.app   #1.  Remove old app / 删除旧版
+hdiutil attach -noverify ~/Downloads/AllDownloader-macOS.dmg   # 2.  Mount / 挂载
+cp -R "/Volumes/AllDownloader"*/AllDownloader.app /Applications/   # 3.  Copy / 复制
+xattr -cr /Applications/AllDownloader.app && open /Applications/AllDownloader.app   #4. Allow & open / 放行并打开
 ```
-
-> 必须先删除旧版再复制——直接覆盖会残留旧文件导致混合版本。数据都在用户目录，删除旧 app 不影响。
 
 ### Windows / Linux
 

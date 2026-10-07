@@ -11,6 +11,10 @@ on:
         description: 'Version tag to forward (e.g. v0.1.0)'
         required: true
         default: 'v0.1.0'
+      source_repo:
+        description: 'Source repo to pull assets from (alldownloader-build = Win/mac/Linux; alldownloader-linux = Linux AppImage only)'
+        required: true
+        default: 'alldownloader-build'
       prerelease:
         description: 'Mark as prerelease'
         type: boolean
@@ -28,13 +32,14 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.PRIVATE_PAT }}
       TAG: ${{ github.event.inputs.tag }}
+      SRC_REPO: ${{ github.event.inputs.source_repo }}
     steps:
-      - name: Download release assets from private build repo
+      - name: Download release assets from source build repo
         run: |
           set -euo pipefail
           mkdir -p assets
-          curl -sS -H "Authorization: token ${GH_TOKEN}" \
-            "https://api.github.com/repos/smalltoolkit/alldownloader-build/releases/tags/${TAG}" \
+          curl -sS -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/smalltoolkit/${SRC_REPO}/releases/tags/${TAG}" \
             > /tmp/rel.json
           jq -r '.tag_name // error("tag not found: " + (.message // "?"))' /tmp/rel.json
           echo "assets: $(jq '.assets | length' /tmp/rel.json)"
@@ -42,10 +47,10 @@ jobs:
           # browser_download_url (releases/download/...) 对本仓库返回 404。
           jq -r '.assets[] | "\(.id)\t\(.name)"' /tmp/rel.json | while IFS=$'\t' read -r id name; do
             echo "downloading: ${name} (asset ${id})"
-            curl -sSL -H "Authorization: token ${GH_TOKEN}" \
+            curl -sSL -H "Authorization: token $GH_TOKEN" \
               -H "Accept: application/octet-stream" \
               -o "assets/${name}" \
-              "https://api.github.com/repos/smalltoolkit/alldownloader-build/releases/assets/${id}"
+              "https://api.github.com/repos/smalltoolkit/${SRC_REPO}/releases/assets/${id}"
           done
           echo "--- downloaded ---"
           ls -la assets/

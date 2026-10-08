@@ -72,7 +72,7 @@ xattr -cr /Applications/AllDownloader.app && open /Applications/AllDownloader.ap
 | Platform / 平台 | What to do / 操作 |
 |---|---|
 | Windows | 安装后直接运行 / Run directly after installation |
-| Linux | `chmod +x AllDownloader-x86_64.AppImage && ./AllDownloader-x86_64.AppImage` / 赋执行权限后运行（单文件、自包含，无需安装依赖） |
+| Linux | 下载后直接双击运行（单文件、自包含，无需安装依赖）。如遇权限提示，`chmod +x AllDownloader-x86_64.AppImage` 后再运行 |
 
 **Linux 双击无反应时（FUSE 未安装）**：
 

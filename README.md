@@ -72,7 +72,20 @@ xattr -cr /Applications/AllDownloader.app && open /Applications/AllDownloader.ap
 | Platform / 平台 | What to do / 操作 |
 |---|---|
 | Windows | 安装后直接运行 / Run directly after installation |
-| Linux | `chmod +x AllDownloader` then run / 赋执行权限后运行 |
+| Linux | `chmod +x AllDownloader-x86_64.AppImage && ./AllDownloader-x86_64.AppImage` / 赋执行权限后运行（单文件、自包含，无需安装依赖） |
+
+**Linux 双击无反应时（FUSE 未安装）**：
+
+```bash
+# 方式一：安装 FUSE（推荐，之后可双击运行）
+sudo apt install libfuse2
+# 方式二：解包运行（无需 FUSE）
+./AllDownloader-x86_64.AppImage --appimage-extract
+chmod +x squashfs-root/AppRun
+./squashfs-root/AppRun
+```
+
+> 要求 Ubuntu 22.04+（glibc ≥ 2.38）。数据保存在 `~/.config/AllDownloader`。
 
 ---
 
